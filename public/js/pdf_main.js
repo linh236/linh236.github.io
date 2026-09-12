@@ -1,40 +1,56 @@
-$(document).ready(function() {
-  const pages = {
-    "0": {
-      page_left: "pages/infor.html",
-      page_right: "pages/skill_page_1.html"
-    },
-    "1": {
-      page_left: "pages/skill_page_2.html",
-      page_right: "pages/experience_page_1.html"
-    },
-    "2": {
-      page_left: "pages/experience_page_2.html",
-      page_right: "pages/my_project.html"
-    },
+$(function () {
+  "use strict";
 
-    "3": {
-      page_left: "pages/additional.html",
-      page_right: "pages/thank_you.html"
-    },
-  };
+  // Flat reading order — the screen view splits these across left/right halves
+  // of a spread, but on paper they are simply pages 1..8.
+  var PAGES = [
+    "pages/infor.html",
+    "pages/skill_page_1.html",
+    "pages/skill_page_2.html",
+    "pages/experience_page_1.html",
+    "pages/experience_page_2.html",
+    "pages/my_project.html",
+    "pages/additional.html",
+    "pages/thank_you.html"
+  ];
 
-  const index_pages = Object.keys(pages);
+  var $doc = $("#pdf-doc");
 
-  // Init
-  $(".left .content").empty();
-  $(".right .content").empty();
+  // Build every sheet up front so the DOM order is correct, then fill them in.
+  // Waiting for all of them keeps the print dialog from opening on a half-
+  // rendered document.
+  var loads = PAGES.map(function (url, i) {
+    var $sheet = $("<article class='sheet'></article>").attr(
+      "data-page",
+      String(i + 1)
+    );
 
-  for (let i = 0; i < index_pages.length; i++) {
-    const key = index_pages[i];
+    $doc.append($sheet);
 
-    const leftPage = $("<div class='page-block'></div>");
-    const rightPage = $("<div class='page-block'></div>");
+    return $.Deferred(function (d) {
+      $sheet.load(url, function (response, status) {
+        if (status === "error") {
+          $sheet.html(
+            "<div class='load-error'><h3>Couldn&rsquo;t load this page</h3><p>" +
+              url +
+              " could not be fetched.</p></div>"
+          );
+        }
+        d.resolve();
+      });
+    }).promise();
+  });
 
-    leftPage.load(pages[key].page_left);
-    rightPage.load(pages[key].page_right);
+  $("#print-cv").on("click", function () {
+    window.print();
+  });
 
-    $(".left .content").append(leftPage);
-    $(".right .content").append(rightPage);
+  // ?print=1 opens the dialog automatically once every sheet has rendered.
+  if (/[?&]print=1\b/.test(window.location.search)) {
+    $.when.apply($, loads).done(function () {
+      window.setTimeout(function () {
+        window.print();
+      }, 300);
+    });
   }
 });

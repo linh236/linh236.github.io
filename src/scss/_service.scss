@@ -1,46 +1,52 @@
-/* Services */
 .services {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 15px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--sp-3);
 }
 
 .service-card {
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  padding: 20px;
+  padding: var(--sp-4);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-lg);
+  background: var(--paper);
+  box-shadow: var(--shadow-sm);
   text-align: center;
-  transition: 0.3s;
-}
+  transition: transform 0.25s var(--ease), box-shadow 0.25s var(--ease),
+              border-color 0.25s var(--ease);
 
-.service-card:hover {
-  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-  transform: translateY(-3px);
-}
+  &:hover {
+    transform: translateY(-4px);
+    border-color: var(--brand-200);
+    box-shadow: var(--shadow-md);
+  }
 
-.service-card h4 {
-  font-size: 16px;
-  color: #2c3e50;
-  margin-bottom: 10px;
-}
+  h4 {
+    font-family: var(--font-display);
+    font-size: var(--fs-md);
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: var(--sp-2);
+  }
 
-.service-card p {
-  font-size: 13px;
-  color: #777;
-  margin-bottom: 15px;
-}
+  p {
+    font-size: var(--fs-sm);
+    color: var(--text-muted);
+    line-height: 1.6;
+    margin-bottom: var(--sp-4);
+  }
 
-.service-card button {
-  background: #3498db;
-  color: #fff;
-  border: none;
-  padding: 8px 15px;
-  border-radius: 5px;
-  cursor: pointer;
-  transition: 0.3s;
-}
+  button {
+    padding: var(--sp-2) var(--sp-4);
+    border: 0;
+    border-radius: var(--r-sm);
+    background: var(--accent);
+    color: #fff;
+    font-family: inherit;
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s var(--ease);
 
-.service-card button:hover {
-  background: #2980b9;
+    &:hover { background: var(--accent-deep); }
+  }
 }
-

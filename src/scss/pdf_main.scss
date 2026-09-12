@@ -1,182 +1,142 @@
-@import "service";
-@import "education";
-@import "infor";
-@import "experience";
-@import "skill";
-@import "my_project";
-@import "additional";
-@import "thank_you";
+// Print stylesheet — a flat, paginated A4 document rendered in reading order.
+// Unlike the screen view this has no 3D, no flipping and no clipping: every
+// sheet is a real page so the browser's own "Save as PDF" produces selectable
+// text rather than a screenshot.
+@use "tokens";
+@use "service";
+@use "education";
+@use "infor";
+@use "experience";
+@use "skill";
+@use "my_project";
+@use "additional";
+@use "thank_you";
 
-*{
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  font-family: Arial, sans-serif;
-}
+$sheet-w: 210mm;
+$sheet-h: 297mm;
+$sheet-pad: 14mm;
 
 body {
-  background: #0098c7;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  position: relative;
+  background: #eef2f7;
+  padding: var(--sp-6) var(--sp-4);
 }
 
-.book {
-  display: grid;
-  // background: #fff;
-  margin: auto;
-  width: 100vw;
-  // height: 90vh;
-  margin: 2rem;
-  gap: 2rem;
-  // box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-  // border-radius: 10px;
-  // overflow: hidden;
-  // overflow-y: auto;
-  // perspective: 2000px;
-  /* &:after { */
-    /* content: ""; */
-    /* position: absolute; */
-    /* top: 0; */
-    /* left: 50%; */
-    /* width: 5px; */
-    /* height: 100%; */
-    /* background: linear-gradient(to bottom, rgba(0,0,0,0.3), transparent); */
-    /* transform: translateX(-50%); */
-    /* z-index: 5; */
-  /* } */
-}
-
-.title {
-  font-size: 24px;
-  font-weight: bold;
-  margin-bottom: 20px;
-  color: #2c3e50;
-}
-
-.section-title {
-  text-align: center;
-  font-size: 2rem;
-  margin-bottom: 1.5rem;
-  color: #333;
-}
-
-.page {
+.pdf-doc {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  align-items: center;
+  gap: var(--sp-5);
+}
+
+.sheet {
   position: relative;
-  width: 50% ;
-  padding: 40px;
-  transform-style: preserve-3d;
-  backface-visibility: hidden;
-  transition: transform 1s ease-in-out;
-  &.left {
-    border-right: 2px solid #e0e0e0;
-    z-index: 2;
-    transform-origin: right center;
-    border-right: 2px solid #e0e0e0;
-    background: linear-gradient(to left, #fff, #f9f9f9);
-    transform-origin: right center;
-    // transform: rotateY(-27.5deg);
-    &.flip-forward {
-      transform: rotateY(0deg);
-    }
+  width: $sheet-w;
+  min-height: $sheet-h;
+  max-width: 100%;
+  padding: $sheet-pad $sheet-pad calc(#{$sheet-pad} + 8mm);
+  background: var(--paper);
+  box-shadow: var(--shadow-lg);
+  break-after: page;
+  page-break-after: always;
 
-    &.flip-backward {
-      transform: rotateY(100deg);
-    }
-     background: linear-gradient(to left, #fff, #f9f9f9);
-
-    &::after {
-      content: "";
-      position: absolute;
-      top: 0;
-      right: 0;
-      width: 30px;
-      height: 100%;
-      background: linear-gradient(to left, rgba(0,0,0,0.05), transparent);
-      pointer-events: none;
-    }
-  }
-  &.right {
-    transform-origin: left center;
-    transform-style: preserve-3d;
-    backface-visibility: hidden;
-    transition: transform 1s ease-in-out;
-    z-index: 2;
-    background: linear-gradient(to right, #fff, #f9f9f9);
-    transform-origin: left center;
-    // transform: rotateY(27.5deg);
-    &.flip-forward {
-      transform: rotateY(-100deg);
-    }
-
-    &.flip-backward {
-      transform: rotateY(0deg);
-    }
-  }
-  .switch {
-    &.nav-left {
-      position: absolute;
-      bottom: 3%;
-      left: 4%;
-      border-right: 2px solid #e0e0e0;
-      transform: translate(-50%, -50%);
-      transform: rotate(90deg);
-      cursor: pointer;
-      border: none;
-      span {
-        display: block;
-        width: 1vw;
-        height: 1vw;
-        border-bottom: 5px solid gray;
-        border-right: 5px solid gray;
-        transform: rotate(45deg);
-        margin: -10px;
-        animation: animate 2s infinite;
-        font-size: 0.9rem;
-        box-shadow: 0 2px 6px transparent;
-        transition: 0.3s;
-      }
-      span:nth-child(2) {
-        animation-delay: -0.2s;
-      }
-      span:nth-child(3) {
-        animation-delay: -0.4s;
-      }
-    }
-    &.nav-right {
-      position: absolute;
-      bottom: 3%;
-      right: 4%;
-      transform: translate(-50%, -50%);
-      transform: rotate(270deg);
-      cursor: pointer;
-      border: none;
-      span {
-        display: block;
-        width: 1vw;
-        height: 1vw;
-        border-bottom: 5px solid gray;
-        border-right: 5px solid gray;
-        transform: rotate(45deg);
-        margin: -10px;
-        animation: animate 2s infinite;
-        font-size: 0.9rem;
-        box-shadow: 0 2px 6px transparent;
-        transition: 0.3s;
-      }
-    }
-  }
-  .content {
-    flex: 1;
+  &:last-child {
+    break-after: auto;
+    page-break-after: auto;
   }
 
-  .pagination {
+  // Page number in the footer of each sheet.
+  &::after {
+    content: attr(data-page);
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 6mm;
     text-align: center;
-    padding: 10px 0;
+    font-size: var(--fs-xs);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.14em;
+    color: var(--text-faint);
   }
+}
+
+// Floating control — screen only, hidden when actually printing.
+.print-bar {
+  position: fixed;
+  top: var(--sp-4);
+  right: var(--sp-4);
+  z-index: 20;
+  display: flex;
+  gap: var(--sp-2);
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-2);
+    padding: var(--sp-3) var(--sp-5);
+    border: 1px solid var(--line);
+    border-radius: var(--r-sm);
+    background: var(--paper);
+    color: var(--text);
+    font-family: inherit;
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: var(--shadow-md);
+    transition: transform 0.2s var(--ease), background 0.2s var(--ease);
+
+    &:hover { transform: translateY(-2px); }
+
+    &.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+
+      &:hover { background: var(--accent-deep); }
+    }
+  }
+}
+
+// The thank-you panel is a full-height hero on screen; on paper it should
+// simply sit at the top of its sheet.
+.thank-you {
+  height: auto;
+  padding: 0;
+}
+
+@page {
+  size: A4;
+  margin: 0;
+}
+
+@media print {
+  body {
+    background: #fff;
+    padding: 0;
+  }
+
+  .print-bar { display: none !important; }
+
+  // The download/contact buttons are meaningless on paper.
+  .thank-you .actions { display: none !important; }
+
+  .pdf-doc { gap: 0; }
+
+  .sheet {
+    width: auto;
+    min-height: auto;
+    box-shadow: none;
+    margin: 0;
+  }
+
+  // Keep cards and timeline entries from being split across sheets.
+  .skill-card,
+  .project-card,
+  .timeline-item,
+  .additional-info,
+  .thanks-card {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  a { color: var(--text); }
 }

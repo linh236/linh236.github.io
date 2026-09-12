@@ -1,0 +1,410 @@
+// The open-book shell: stage, two pages, spine, and the flip navigation.
+
+.stage {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-4);
+  padding: var(--sp-5) var(--sp-4);
+  background:
+    radial-gradient(1200px 600px at 15% -10%, #2b6fd6 0%, transparent 60%),
+    radial-gradient(900px 500px at 90% 110%, #0aa6c9 0%, transparent 55%),
+    linear-gradient(160deg, #0d3b8f 0%, #0f6ea8 55%, #0898bf 100%);
+}
+
+.book {
+  position: relative;
+  display: flex;
+  width: min(1240px, 100%);
+  height: min(860px, 86vh);
+  perspective: 2600px;
+  perspective-origin: 50% 50%;
+  filter: drop-shadow(0 30px 60px rgba(4, 22, 56, 0.45));
+}
+
+// The spine: a soft gutter shadow where the two pages meet.
+.book::after {
+  content: "";
+  position: absolute;
+  top: 2%;
+  left: 50%;
+  width: 26px;
+  height: 96%;
+  transform: translateX(-50%);
+  background: linear-gradient(
+    90deg,
+    rgba(15, 23, 42, 0) 0%,
+    rgba(15, 23, 42, 0.16) 42%,
+    rgba(15, 23, 42, 0.26) 50%,
+    rgba(15, 23, 42, 0.16) 58%,
+    rgba(15, 23, 42, 0) 100%
+  );
+  pointer-events: none;
+  z-index: 6;
+}
+
+// The two static halves of the spread. These no longer animate themselves —
+// the turning leaf above them does all the movement, and these simply hold
+// whatever is currently face-up.
+.page {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 50%;
+  height: 100%;
+  padding: var(--sp-6) var(--sp-6) var(--sp-7);
+  background: var(--paper);
+  z-index: 2;
+
+  &.left {
+    border-radius: var(--r-lg) 0 0 var(--r-lg);
+
+    // Gutter falloff along the inner edge.
+    &::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 56px;
+      height: 100%;
+      background: linear-gradient(to left, rgba(15, 23, 42, 0.07), transparent);
+      pointer-events: none;
+      z-index: 3;
+    }
+  }
+
+  &.right {
+    border-radius: 0 var(--r-lg) var(--r-lg) 0;
+
+    &::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 56px;
+      height: 100%;
+      background: linear-gradient(to right, rgba(15, 23, 42, 0.07), transparent);
+      pointer-events: none;
+      z-index: 3;
+    }
+  }
+}
+
+// --- The turning leaf -------------------------------------------------
+// A real sheet of paper has two sides. This is one physical leaf hinged at
+// the spine: its FRONT is the page you were just reading and its BACK is the
+// page revealed once it lands. Rotating it a full 180deg past the hinge is
+// what sells the turn — you watch one page lift, go edge-on, and settle as
+// the facing page of the new spread.
+.flip-leaf {
+  position: absolute;
+  top: 0;
+  width: 50%;
+  height: 100%;
+  z-index: 10;
+  transform-style: preserve-3d;
+  transform: rotateY(0deg);
+  transition: transform var(--flip-ms, 900ms) cubic-bezier(0.645, 0.045, 0.355, 1);
+  will-change: transform;
+  pointer-events: none;
+
+  &.forward {
+    left: 50%;
+    transform-origin: left center;
+
+    &.is-turning { transform: rotateY(-180deg); }
+  }
+
+  &.backward {
+    left: 0;
+    transform-origin: right center;
+
+    &.is-turning { transform: rotateY(180deg); }
+  }
+}
+
+.flip-face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding: var(--sp-6) var(--sp-6) var(--sp-7);
+  background: var(--paper);
+  backface-visibility: hidden;
+  overflow: hidden;
+
+  // The reverse side of the same sheet.
+  &.back { transform: rotateY(180deg); }
+
+  // Faces are snapshots, so they never scroll or show scroll shadows.
+  .content {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    background: none;
+    padding-right: var(--sp-3);
+
+    > * { animation: none; }
+  }
+}
+
+.flip-leaf.forward  .flip-face { border-radius: 0 var(--r-lg) var(--r-lg) 0; }
+.flip-leaf.backward .flip-face { border-radius: var(--r-lg) 0 0 var(--r-lg); }
+
+// Light falls off as the sheet rotates: the face turning away darkens, the
+// face coming up brightens. Both gradients are anchored at the spine edge.
+.flip-shade {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  transition: opacity var(--flip-ms, 900ms) cubic-bezier(0.645, 0.045, 0.355, 1);
+}
+
+.flip-face.front .flip-shade {
+  opacity: 0;
+  background: linear-gradient(
+    to right,
+    rgba(15, 23, 42, 0.42),
+    rgba(15, 23, 42, 0.06) 55%,
+    rgba(15, 23, 42, 0)
+  );
+}
+
+.flip-face.back .flip-shade {
+  opacity: 1;
+  background: linear-gradient(
+    to right,
+    rgba(15, 23, 42, 0.5),
+    rgba(15, 23, 42, 0.08) 60%,
+    rgba(15, 23, 42, 0)
+  );
+}
+
+.flip-leaf.is-turning {
+  .flip-face.front .flip-shade { opacity: 1; }
+  .flip-face.back  .flip-shade { opacity: 0; }
+}
+
+// Scrollable body of each page. The old layout clipped anything taller than
+// the spread; now long sections (e.g. Work Experience) scroll in place.
+.content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: var(--sp-3);
+  position: relative;
+  z-index: 2;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+
+  // Scroll shadows: the two "cover" layers scroll with the content (local)
+  // while the two shadow layers stay pinned (scroll), so a soft edge appears
+  // only on the side that actually has more content off-screen.
+  background:
+    linear-gradient(var(--paper) 30%, rgba(255, 255, 255, 0)) top / 100% 30px no-repeat local,
+    linear-gradient(rgba(255, 255, 255, 0), var(--paper) 70%) bottom / 100% 30px no-repeat local,
+    radial-gradient(farthest-side at 50% 0, rgba(15, 23, 42, 0.13), rgba(15, 23, 42, 0)) top / 100% 12px no-repeat scroll,
+    radial-gradient(farthest-side at 50% 100%, rgba(15, 23, 42, 0.13), rgba(15, 23, 42, 0)) bottom / 100% 12px no-repeat scroll;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--line);
+    border-radius: 999px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  // Fragments fade in as each spread loads.
+  > * {
+    animation: page-in 0.45s var(--ease) both;
+  }
+}
+
+@keyframes page-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+
+// Page-turn controls.
+.switch {
+  position: absolute;
+  bottom: var(--sp-4);
+  z-index: 8;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--paper);
+  color: var(--accent-deep);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: transform 0.25s var(--ease), box-shadow 0.25s var(--ease),
+              background 0.2s var(--ease), opacity 0.2s linear;
+
+  // Chevron drawn from the existing <span> so the markup stays put.
+  span {
+    display: block;
+    width: 9px;
+    height: 9px;
+    border-bottom: 2px solid currentColor;
+    border-right: 2px solid currentColor;
+  }
+
+  &.nav-left {
+    left: var(--sp-5);
+    span { transform: rotate(135deg); margin-left: 3px; }
+  }
+
+  &.nav-right {
+    right: var(--sp-5);
+    span { transform: rotate(-45deg); margin-right: 3px; }
+  }
+
+  &:hover:not(:disabled) {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(0);
+  }
+
+  // Replaces the old always-on bounce: the arrow only nudges when there is
+  // actually somewhere to go.
+  &:disabled {
+    opacity: 0.3;
+    cursor: default;
+    box-shadow: none;
+  }
+}
+
+.pagination {
+  position: absolute;
+  bottom: var(--sp-4);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4;
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.14em;
+  color: var(--text-faint);
+}
+
+// Progress dots under the book — orientation the original layout lacked.
+.book-progress {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+
+  button {
+    width: 9px;
+    height: 9px;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.42);
+    cursor: pointer;
+    transition: width 0.3s var(--ease), background 0.3s var(--ease);
+
+    &:hover { background: rgba(255, 255, 255, 0.75); }
+
+    &[aria-current="true"] {
+      width: 26px;
+      background: #fff;
+    }
+  }
+}
+
+// Shown only when the page is opened straight off the filesystem, where
+// fetching the fragments is blocked by the browser.
+.load-error {
+  margin: var(--sp-5) 0;
+  padding: var(--sp-5);
+  border: 1px solid #fecaca;
+  border-left: 4px solid #ef4444;
+  border-radius: var(--r-md);
+  background: #fef2f2;
+  color: #7f1d1d;
+
+  h3 {
+    font-family: var(--font-display);
+    font-size: var(--fs-md);
+    margin-bottom: var(--sp-2);
+  }
+
+  p { font-size: var(--fs-sm); margin-bottom: var(--sp-2); }
+
+  code {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: #fee2e2;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: var(--fs-xs);
+  }
+}
+
+// --- Responsive -------------------------------------------------------
+// Below the fold-out width the 3D spread stops working: flatten it to a
+// single scrolling column with one page visible at a time.
+@media (max-width: 900px) {
+  .stage {
+    justify-content: flex-start;
+    padding: var(--sp-4) var(--sp-3);
+  }
+
+  .book {
+    flex-direction: column;
+    height: auto;
+    perspective: none;
+    filter: none;
+    gap: var(--sp-4);
+  }
+
+  .book::after { display: none; }
+
+  .page {
+    width: 100%;
+    height: auto;
+    min-height: 60vh;
+    padding: var(--sp-5) var(--sp-4) var(--sp-7);
+    border-radius: var(--r-lg);
+    box-shadow: var(--shadow-lg);
+    transform: none !important;
+
+    &.left::after,
+    &.right::after { display: none; }
+  }
+
+  // Stacked layout has no spine to hinge on — the JS swaps content directly.
+  .flip-leaf { display: none; }
+
+  .content {
+    overflow: visible;
+    padding-right: 0;
+    background: none;
+  }
+
+  .switch {
+    bottom: var(--sp-3);
+    &.nav-left  { left: var(--sp-4); }
+    &.nav-right { right: var(--sp-4); }
+  }
+}

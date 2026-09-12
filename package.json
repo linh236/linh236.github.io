@@ -1,8 +1,15 @@
 {
     "devDependencies": {
+        "browser-sync": "^3.0.4",
+        "concurrently": "^10.0.5",
         "sass": "^1.91.0"
     },
     "scripts": {
-        "sass": "sass --watch src/scss:public/css"
+        "start": "concurrently -k -n sass,serve -c magenta,cyan \"npm:watch:sass\" \"npm:watch:serve\"",
+        "watch:sass": "sass --watch src/scss:public/css",
+        "watch:serve": "browser-sync start --server --port 8080 --no-notify --no-open --files \"public/css/*.css\" \"public/js/*.js\" \"pages/*.html\" \"*.html\"",
+        "sass": "sass --watch src/scss:public/css",
+        "serve": "browser-sync start --server --port 8080",
+        "build": "sass src/scss:public/css --no-source-map --style=compressed"
     }
 }

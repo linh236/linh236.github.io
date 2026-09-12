@@ -1,6 +1,6 @@
 <section class="thank-you">
   <div class="thanks-card">
-    <div class="icon">🙏</div>
+    <div class="icon" aria-hidden="true">🙏</div>
     <h2>Thank you for reviewing my CV!</h2>
     <p class="message">
       I truly appreciate your time. If my profile aligns with your team’s needs, I would
@@ -8,8 +8,12 @@
     </p>
 
     <div class="actions">
-      <a class="btn primary cursor" onclick="generatePDF()" target="_blank" rel="noopener">Download CV (PDF)</a>
-      <a class="btn" href="mailto:linhnq236@gmail.com">Contact Me</a>
+      <a class="btn primary" href="pdf.html?print=1" target="_blank" rel="noopener">
+        <i class="fa-solid fa-file-arrow-down" aria-hidden="true"></i> Download CV (PDF)
+      </a>
+      <a class="btn" href="mailto:linhnq236@gmail.com">
+        <i class="fa-solid fa-envelope" aria-hidden="true"></i> Contact Me
+      </a>
     </div>
 
     <div class="signature">
@@ -18,31 +22,3 @@
     </div>
   </div>
 </section>
-<script>
-  function generatePDF()
-  {
-    // Initialize jsPDF
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF("p", "pt", "a4");
-
-    // Capture the CV container only, not the whole body
-    const cvElement = document.querySelector(".book"); // change to "#cv" if you wrap your CV in a container
-    console.log(cvElement)
-
-    doc.html(cvElement,
-    {
-      callback: function(doc)
-      {
-        doc.save("my_cv.pdf");
-      },
-      x: 10,
-      y: 10,
-      html2canvas:
-      {
-        scale: 0.7, // shrink to fit A4
-        useCORS: true
-      },
-      autoPaging: "text", // allows multi-page content
-    });
-  }
-</script>

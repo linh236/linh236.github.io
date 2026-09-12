@@ -1,61 +1,134 @@
 .experience {
-  .section-title {
-    text-align: center;
-    font-size: 2rem;
-    margin-bottom: 1.5rem;
-    color: #333;
-  }
-
   .timeline {
     position: relative;
-    margin: 2rem 0;
-    padding-left: 2rem;
-    border-left: 3px solid #007bff;
+    padding-left: var(--sp-5);
+
+    // Rail fades out at the bottom instead of stopping dead.
+    &::before {
+      content: "";
+      position: absolute;
+      top: 6px;
+      bottom: 0;
+      left: 4px;
+      width: 2px;
+      border-radius: 999px;
+      background: linear-gradient(
+        to bottom,
+        var(--accent) 0%,
+        var(--brand-200) 70%,
+        transparent 100%
+      );
+    }
   }
 
   .timeline-item {
-    margin-bottom: 2rem;
     position: relative;
-  }
+    margin-bottom: var(--sp-5);
 
-  .timeline-item::before {
-    content: "";
-    position: absolute;
-    left: -40px;
-    top: 0px;
-    width: 8px;
-    height: 8px;
-    background: #fff;
-    border: 3px solid #007bff;
-    border-radius: 50%;
+    &:last-child { margin-bottom: 0; }
+
+    // Node on the rail.
+    &::before {
+      content: "";
+      position: absolute;
+      left: calc(var(--sp-5) * -1);
+      top: 6px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--paper);
+      border: 2.5px solid var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
   }
 
   .timeline-date {
-    font-weight: bold;
-    color: #007bff;
-    margin-bottom: .5rem;
+    display: inline-block;
+    margin-bottom: var(--sp-2);
+    padding: 2px var(--sp-2);
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent-deep);
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    letter-spacing: 0.02em;
   }
 
   .timeline-content {
-    background: #ffff;
-    padding: 1rem 1.5rem;
-    border-radius: 10px;
-    line-height: 1.4;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-  }
+    padding: var(--sp-4);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--r-lg);
+    background: var(--paper);
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 0.25s var(--ease), border-color 0.25s var(--ease);
 
-  .timeline-content h3 {
-    font-size: 1.2rem;
-    margin-bottom: .5rem;
-  }
+    &:hover {
+      border-color: var(--brand-200);
+      box-shadow: var(--shadow-md);
+    }
 
-  .timeline-content span {
-    color: #555;
+    h3 {
+      font-family: var(--font-display);
+      font-size: var(--fs-md);
+      font-weight: 600;
+      line-height: 1.4;
+      color: var(--text);
+      margin-bottom: var(--sp-3);
+
+      // Company name inside the role heading.
+      span { color: var(--accent); }
+    }
+
+    h4 {
+      font-size: var(--fs-sm);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-faint);
+      margin: var(--sp-4) 0 var(--sp-2);
+    }
+
+    ul {
+      list-style: none;
+      display: grid;
+      gap: var(--sp-1);
+
+      li {
+        position: relative;
+        padding-left: var(--sp-4);
+        font-size: var(--fs-sm);
+        color: var(--text-muted);
+        line-height: 1.6;
+
+        &::before {
+          content: "";
+          position: absolute;
+          left: 2px;
+          top: 0.62em;
+          width: 5px;
+          height: 5px;
+          border-radius: 50%;
+          background: var(--brand-300);
+        }
+      }
+    }
+
+    p {
+      font-size: var(--fs-sm);
+      color: var(--text-muted);
+      line-height: 1.6;
+      margin-top: var(--sp-2);
+
+      strong { color: var(--text); font-weight: 600; }
+    }
+
+    // The markup uses bare <br> between blocks; neutralise the extra gap.
+    br { display: none; }
   }
 
   .role-period {
-    font-weight: bold;
-    color: #444;
-    margin-top: 1rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-top: var(--sp-4);
   }
 }
