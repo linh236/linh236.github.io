@@ -149,3 +149,27 @@
     }
   }
 }
+
+// The profile is one indivisible block — it cannot be split across pages the
+// way the work history can — so on a short screen it scales down instead.
+@media (min-width: 901px) and (max-height: 920px) {
+  .profile-card {
+    .profile-image {
+      margin-bottom: var(--sp-2);
+
+      img { width: 104px; height: 104px; }
+    }
+
+    .title { margin: var(--sp-1) 0 var(--sp-2); }
+
+    .social-links { margin-bottom: var(--sp-3); }
+
+    .bio { margin-bottom: var(--sp-3); }
+
+    .infor-page {
+      h2 { margin-bottom: var(--sp-2); }
+
+      .info-list li { padding: var(--sp-1) 0; }
+    }
+  }
+}

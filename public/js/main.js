@@ -1,12 +1,33 @@
 $(function () {
   "use strict";
 
-  var SPREADS = [
-    { left: "pages/infor.html",             right: "pages/skill_page_1.html" },
-    { left: "pages/skill_page_2.html",      right: "pages/experience_page_1.html" },
-    { left: "pages/experience_page_2.html", right: "pages/my_project.html" },
-    { left: "pages/additional.html",        right: "pages/thank_you.html" }
+  // The CV in reading order, one entry per page. Sections that outgrow a
+  // single page are split across numbered files (experience_page_1, _2, …) —
+  // a page has a fixed height, so content that does not fit gets clipped.
+  // Add a page here and it is paired into a spread automatically.
+  var PAGES = [
+    "pages/infor.html",
+    "pages/skill_page_1.html",
+    "pages/skill_page_2.html",
+    "pages/experience_page_1.html",
+    "pages/experience_page_2.html",
+    "pages/experience_page_3.html",
+    "pages/my_project.html",
+    "pages/additional.html",
+    "pages/thank_you.html"
   ];
+
+  var BLANK = null; // trailing filler when the page count is odd
+
+  // Pages are read two at a time, so fold the flat list into spreads. An odd
+  // final page gets a blank facing page, exactly as a printed book would.
+  var SPREADS = (function () {
+    var out = [];
+    for (var i = 0; i < PAGES.length; i += 2) {
+      out.push({ left: PAGES[i], right: i + 1 < PAGES.length ? PAGES[i + 1] : BLANK });
+    }
+    return out;
+  })();
 
   var FLIP_MS = 900; // keep in step with --flip-ms in _book.scss
 
@@ -20,6 +41,35 @@ $(function () {
   var current = 0;
   var flipping = false;
   var cache = {};
+
+  // --- Where you are, kept in the URL -----------------------------------
+  // The spread lives in the hash (#spread-3), so a refresh reopens the page
+  // you were on and the URL can be shared or bookmarked straight to a spread.
+
+  function clampSpread(n) {
+    if (isNaN(n)) return 0;
+    return Math.min(Math.max(n, 0), SPREADS.length - 1);
+  }
+
+  function spreadFromHash() {
+    var m = /spread-(\d+)/.exec(window.location.hash);
+    // The hash is 1-based for readability; the index is 0-based.
+    return m ? clampSpread(parseInt(m[1], 10) - 1) : 0;
+  }
+
+  // replaceState rather than assigning location.hash: it keeps the URL in step
+  // without stacking a history entry per turn (and without firing hashchange,
+  // which would bounce straight back into goTo).
+  function writeHash(index) {
+    var hash = "#spread-" + (index + 1);
+    if (window.location.hash === hash) return;
+
+    if (window.history && window.history.replaceState) {
+      window.history.replaceState(null, "", hash);
+    } else {
+      window.location.hash = hash;
+    }
+  }
 
   // Served over file:// the fragments cannot be fetched, which previously left
   // the book silently blank. Explain it instead.
@@ -48,19 +98,24 @@ $(function () {
     return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   }
 
-  function pageNo(index, side) {
-    return index * 2 + (side === "left" ? 1 : 2);
+  // A blank filler page carries no content and no page number.
+  function faceOf(index, side) {
+    var url = SPREADS[index][side];
+
+    return {
+      html: url ? cache[url] : "",
+      number: url ? index * 2 + (side === "left" ? 1 : 2) : ""
+    };
   }
 
-  function setPage($page, html, number) {
-    $page.find(".content").html(html);
-    $page.find(".pagination").text(number);
+  function setPage($page, face) {
+    $page.find(".content").html(face.html);
+    $page.find(".pagination").text(face.number);
   }
 
   function render(index) {
-    var spread = SPREADS[index];
-    setPage($left, cache[spread.left], pageNo(index, "left"));
-    setPage($right, cache[spread.right], pageNo(index, "right"));
+    setPage($left, faceOf(index, "left"));
+    setPage($right, faceOf(index, "right"));
     syncControls();
   }
 
@@ -102,6 +157,8 @@ $(function () {
     if (flipping || target === current) return;
     if (target < 0 || target > SPREADS.length - 1) return;
 
+    writeHash(target);
+
     // No spine to hinge on when stacked, and no animation when the reader has
     // asked for reduced motion — just swap.
     if (stacked() || reducedMotion()) {
@@ -111,16 +168,9 @@ $(function () {
     }
 
     var forward = target > current;
-    var from = SPREADS[current];
-    var to = SPREADS[target];
 
-    var front = forward
-      ? { html: cache[from.right], number: pageNo(current, "right") }
-      : { html: cache[from.left],  number: pageNo(current, "left") };
-
-    var back = forward
-      ? { html: cache[to.left],  number: pageNo(target, "left") }
-      : { html: cache[to.right], number: pageNo(target, "right") };
+    var front = forward ? faceOf(current, "right") : faceOf(current, "left");
+    var back = forward ? faceOf(target, "left") : faceOf(target, "right");
 
     flipping = true;
     syncControls(target);
@@ -128,9 +178,9 @@ $(function () {
     // Put the destination page underneath straight away — the leaf covers it
     // at rest, so it is only revealed as the sheet lifts off.
     if (forward) {
-      setPage($right, cache[to.right], pageNo(target, "right"));
+      setPage($right, faceOf(target, "right"));
     } else {
-      setPage($left, cache[to.left], pageNo(target, "left"));
+      setPage($left, faceOf(target, "left"));
     }
 
     var $leaf = buildLeaf(forward, front, back);
@@ -145,9 +195,9 @@ $(function () {
       // The leaf has landed; the half it came to rest on takes over its back
       // face, then the leaf is discarded.
       if (forward) {
-        setPage($left, cache[to.left], pageNo(target, "left"));
+        setPage($left, faceOf(target, "left"));
       } else {
-        setPage($right, cache[to.right], pageNo(target, "right"));
+        setPage($right, faceOf(target, "right"));
       }
 
       $leaf.remove();
@@ -181,11 +231,16 @@ $(function () {
     if (e.key === "End") goTo(SPREADS.length - 1);
   });
 
+  // Someone editing the hash by hand, or following a link to #spread-N while
+  // already on the page. Our own updates use replaceState, so they never land
+  // here.
+  $(window).on("hashchange", function () {
+    goTo(spreadFromHash());
+  });
+
   // Every fragment is fetched up front. The leaf needs both of its faces ready
   // at the instant the turn starts, so loading on demand would flash blank.
-  var urls = SPREADS.reduce(function (acc, s) {
-    return acc.concat(s.left, s.right);
-  }, []);
+  var urls = PAGES.slice();
 
   // Each request is wrapped so it always resolves — otherwise a single 404
   // would reject $.when and render the book before the rest had arrived.
@@ -203,6 +258,10 @@ $(function () {
   buildDots();
 
   $.when.apply($, requests).done(function () {
+    // Reopen wherever the reader left off, and normalise the hash so a bare
+    // or out-of-range one (#spread-99) still reflects what is on screen.
+    current = spreadFromHash();
+    writeHash(current);
     render(current);
   });
 });

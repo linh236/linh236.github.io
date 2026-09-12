@@ -2,13 +2,15 @@ $(function () {
   "use strict";
 
   // Flat reading order — the screen view splits these across left/right halves
-  // of a spread, but on paper they are simply pages 1..8.
+  // of a spread; on paper they are simply consecutive sheets. Keep this list
+  // in step with PAGES in main.js.
   var PAGES = [
     "pages/infor.html",
     "pages/skill_page_1.html",
     "pages/skill_page_2.html",
     "pages/experience_page_1.html",
     "pages/experience_page_2.html",
+    "pages/experience_page_3.html",
     "pages/my_project.html",
     "pages/additional.html",
     "pages/thank_you.html"
