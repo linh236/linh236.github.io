@@ -16,6 +16,10 @@
 }
 
 .book {
+  // Duration of one page turn. Keep in step with FLIP_MS in public/js/main.js —
+  // the content swap is timed off that.
+  --flip-ms: 900ms;
+
   position: relative;
   display: flex;
   width: min(1240px, 100%);

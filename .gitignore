@@ -1,9 +1,9 @@
 node_modules/
 .DS_Store
 
-# Sass build artifacts — the compiled .css is committed (GitHub Pages serves it
-# directly), but the source maps are regenerated on every watch run.
-public/css/*.map
+# The compiled public/css/ output is committed on purpose — GitHub Pages serves
+# the repo as-is and does not run Sass. The .map files are committed too, so
+# that what `npm start` produces matches what is in the repo.
 _site/
 .sass-cache/
 npm-debug.log*

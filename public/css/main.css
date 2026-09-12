@@ -162,6 +162,7 @@ a {
 }
 
 .book {
+  --flip-ms: 900ms;
   position: relative;
   display: flex;
   width: min(1240px, 100%);
@@ -1226,3 +1227,5 @@ a {
   font-size: var(--fs-md);
   color: var(--text);
 }
+
+/*# sourceMappingURL=main.css.map */
