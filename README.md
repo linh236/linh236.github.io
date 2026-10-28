@@ -4,7 +4,7 @@ An interactive CV that reads like a book. Pages are laid out as two-page spreads
 and turn on a hinged leaf; the same content is also served as a clean, paginated
 A4 document for printing or saving to PDF.
 
-**Live:** https://linh236.github.io/my_cv/
+**Live:** https://linh236.github.io
 
 ---
 
