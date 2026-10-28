@@ -24,9 +24,103 @@
   display: flex;
   width: min(1240px, 100%);
   height: min(860px, 86vh);
-  perspective: 2600px;
+  // Deep enough to read as 3D, shallow enough that a turning leaf is not
+  // magnified past the top and bottom of the book as it comes edge-on —
+  // which the dark cover made obvious.
+  perspective: 4200px;
   perspective-origin: 50% 50%;
-  filter: drop-shadow(0 30px 60px rgba(4, 22, 56, 0.45));
+
+  // box-shadow, NOT filter: drop-shadow(). A filter here applies to the whole
+  // subtree — including the turning leaf — so the browser has to recompute it
+  // over the entire book on every frame of the animation. A box-shadow on this
+  // static element is painted once and costs nothing while a page turns.
+  border-radius: var(--r-lg);
+  box-shadow: 0 30px 60px rgba(4, 22, 56, 0.45);
+
+  transition: transform var(--flip-ms, 900ms) var(--ease);
+}
+
+// The closed book: there is nothing to the left of a front cover, so the left
+// half is hidden and the whole book slides over to centre the cover. Opening
+// it is an ordinary page turn, which slides this back as the cover swings.
+.book.is-closed {
+  transform: translateX(-25%);
+  box-shadow: none;
+
+  .page.left { visibility: hidden; }
+
+  // Page edges stacked along the opening side, so a closed book has depth.
+  &::before {
+    content: "";
+    position: absolute;
+    top: 10px;
+    bottom: 10px;
+    left: 100%;
+    width: 10px;
+    border-radius: 0 4px 4px 0;
+    background: repeating-linear-gradient(
+      to right,
+      #ffffff 0 2px,
+      #dbe3ee 2px 3px
+    );
+    box-shadow: 4px 0 12px rgba(4, 22, 56, 0.32);
+  }
+
+  // The spine belongs to an open book.
+  &::after { opacity: 0; }
+
+  // With only one panel showing, the shadow belongs to that panel. The radius
+  // is deliberately left alone: a book's binding edge is straight, and the
+  // page keeps the same square spine corners it has when the book is open —
+  // so nothing about its shape changes the moment a turn begins.
+  .page.right {
+    box-shadow: 0 30px 60px rgba(4, 22, 56, 0.45);
+  }
+}
+
+// Closing on the back cover mirrors opening on the front: nothing to the right
+// of a back cover, so that half is hidden and the book slides the other way.
+.book.is-closed-back {
+  transform: translateX(25%);
+  box-shadow: none;
+
+  .page.right { visibility: hidden; }
+
+  &::after { opacity: 0; }
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 10px;
+    bottom: 10px;
+    right: 100%;
+    width: 10px;
+    border-radius: 4px 0 0 4px;
+    background: repeating-linear-gradient(
+      to left,
+      #ffffff 0 2px,
+      #dbe3ee 2px 3px
+    );
+    box-shadow: -4px 0 12px rgba(4, 22, 56, 0.32);
+  }
+
+  .page.left {
+    box-shadow: 0 30px 60px rgba(4, 22, 56, 0.45);
+  }
+}
+
+// A half with nothing on it is not a blank white page — it is the outside of
+// a closed book. Hiding it here covers every case at once: either end of the
+// book, and the whole duration of a turn onto or off a cover, during which
+// this half still holds the previous spread's empty side.
+.page.is-blank { visibility: hidden; }
+
+// The cover is full-bleed, so its page gives up the gutter the scroll shadows
+// would otherwise reserve.
+.page.is-cover .content,
+.flip-face.is-cover .content {
+  padding-right: 0;
+  background: none;
 }
 
 // The spine: a soft gutter shadow where the two pages meet.
@@ -140,6 +234,17 @@
   backface-visibility: hidden;
   overflow: hidden;
 
+  // Each face holds a full copy of a page. Promoting it to its own layer lets
+  // the browser rasterize that content once and then only move the layer,
+  // instead of repainting every card and shadow on each frame.
+  will-change: transform;
+
+  // Layout containment as well as paint: the face is absolutely positioned at
+  // a fixed size, so nothing inside it can affect the rest of the document.
+  // Saying so lets the browser lay out a whole inserted page in isolation
+  // rather than reflowing the book around it.
+  contain: layout paint;
+
   // The reverse side of the same sheet.
   &.back { transform: rotateY(180deg); }
 
@@ -155,8 +260,19 @@
   }
 }
 
-.flip-leaf.forward  .flip-face { border-radius: 0 var(--r-lg) var(--r-lg) 0; }
-.flip-leaf.backward .flip-face { border-radius: var(--r-lg) 0 0 var(--r-lg); }
+// A face is rounded on the outer edge and square at the spine, matching the
+// half it comes to rest on. The two faces of a leaf land on opposite halves,
+// so they take opposite radii: the back face's own rotateY(180deg) cancels the
+// leaf's rotation, leaving it unmirrored, so it cannot inherit the front's.
+.flip-leaf.forward  .flip-face.front,
+.flip-leaf.backward .flip-face.back {
+  border-radius: 0 var(--r-lg) var(--r-lg) 0;   // sits on the right half
+}
+
+.flip-leaf.forward  .flip-face.back,
+.flip-leaf.backward .flip-face.front {
+  border-radius: var(--r-lg) 0 0 var(--r-lg);   // sits on the left half
+}
 
 // Light falls off as the sheet rotates: the face turning away darkens, the
 // face coming up brightens. Both gradients are anchored at the spine edge.
@@ -396,7 +512,7 @@
     flex-direction: column;
     height: auto;
     perspective: none;
-    filter: none;
+    box-shadow: none;
     gap: var(--sp-4);
   }
 

@@ -3,6 +3,7 @@
 // sheet is a real page so the browser's own "Save as PDF" produces selectable
 // text rather than a screenshot.
 @use "tokens";
+@use "cover";
 @use "service";
 @use "education";
 @use "infor";

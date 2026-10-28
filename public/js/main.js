@@ -1,11 +1,27 @@
 $(function () {
   "use strict";
 
+  var BLANK = null;  // a leaf with nothing on that side
+  var COVER = "pages/cover.html";
+  var BACK_COVER = "pages/thank_you.html";
+
+  function isCover(url) {
+    return url === COVER || url === BACK_COVER;
+  }
+
   // The CV in reading order, one entry per page. Sections that outgrow a
   // single page are split across numbered files (experience_page_1, _2, …) —
   // a page has a fixed height, so content that does not fit gets clipped.
   // Add a page here and it is paired into a spread automatically.
+  //
+  // The list opens on a blank facing the cover. That first "spread" is the
+  // closed book: nothing to the left of a front cover, so the left half is
+  // hidden and the cover sits centred. Turning it is an ordinary page turn —
+  // the cover is the front of the leaf and page 1 is its back — which is
+  // precisely how a book opens.
   var PAGES = [
+    BLANK,
+    COVER,
     "pages/infor.html",
     "pages/skill_page_1.html",
     "pages/skill_page_2.html",
@@ -17,7 +33,19 @@ $(function () {
     "pages/thank_you.html"
   ];
 
-  var BLANK = null; // trailing filler when the page count is odd
+  // A book prints no number on its cover, so numbering starts after it and
+  // the profile is page 1.
+  var PAGE_NUMBER = (function () {
+    var map = {};
+    var n = 0;
+
+    PAGES.forEach(function (url) {
+      if (!url) return;
+      map[url] = isCover(url) ? "" : String(++n);
+    });
+
+    return map;
+  })();
 
   // Pages are read two at a time, so fold the flat list into spreads. An odd
   // final page gets a blank facing page, exactly as a printed book would.
@@ -98,25 +126,57 @@ $(function () {
     return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   }
 
+  // Each page's markup is parsed once, at load, into a detached node. Turning
+  // a page then clones that node instead of re-parsing a page of HTML — the
+  // parse was landing right as the animation started, which is exactly when
+  // there are no spare milliseconds.
+  function template(html) {
+    var el = document.createElement("div");
+    el.innerHTML = html;
+    return el;
+  }
+
   // A blank filler page carries no content and no page number.
   function faceOf(index, side) {
     var url = SPREADS[index][side];
 
     return {
-      html: url ? cache[url] : "",
-      number: url ? index * 2 + (side === "left" ? 1 : 2) : ""
+      node: url && cache[url] ? cache[url].cloneNode(true) : null,
+      number: url ? PAGE_NUMBER[url] : "",
+      cover: isCover(url)
     };
   }
 
+  function fillContent(contentEl, node) {
+    contentEl.textContent = "";
+    if (!node) return;
+
+    // Move the clone's children across rather than re-serialising them.
+    while (node.firstChild) contentEl.appendChild(node.firstChild);
+  }
+
   function setPage($page, face) {
-    $page.find(".content").html(face.html);
+    fillContent($page.find(".content")[0], face.node);
     $page.find(".pagination").text(face.number);
+    // The cover is full-bleed, so its page gives up the paper padding.
+    $page.toggleClass("is-cover", !!face.cover);
+    $page.toggleClass("is-blank", !face.node);
   }
 
   function render(index) {
     setPage($left, faceOf(index, "left"));
     setPage($right, faceOf(index, "right"));
+    setClosed(index);
     syncControls();
+  }
+
+  // The book is shut at either end: the front cover has nothing to its left,
+  // the back cover nothing to its right.
+  function setClosed(index) {
+    var last = SPREADS.length - 1;
+
+    $book.toggleClass("is-closed", index === 0 && !SPREADS[0].left);
+    $book.toggleClass("is-closed-back", index === last && !SPREADS[last].right);
   }
 
   // Takes an explicit index so the controls can update the moment a turn
@@ -134,23 +194,37 @@ $(function () {
 
   // One leaf, two faces. `front` is what the reader is looking at now; `back`
   // is what ends up face-up once the sheet has turned all the way over.
+  // Built with DOM calls rather than an HTML string so the page content can be
+  // dropped in as an already-parsed clone.
   function buildLeaf(forward, front, back) {
-    function face(cls, html, number) {
-      return (
-        '<div class="flip-face ' + cls + '">' +
-        '<div class="content">' + html + "</div>" +
-        '<div class="pagination">' + number + "</div>" +
-        '<div class="flip-shade"></div>' +
-        "</div>"
-      );
+    function face(cls, side) {
+      var el = document.createElement("div");
+      el.className = "flip-face " + cls + (side.cover ? " is-cover" : "");
+
+      var content = document.createElement("div");
+      content.className = "content";
+      fillContent(content, side.node);
+
+      var num = document.createElement("div");
+      num.className = "pagination";
+      num.textContent = side.number;
+
+      var shade = document.createElement("div");
+      shade.className = "flip-shade";
+
+      el.appendChild(content);
+      el.appendChild(num);
+      el.appendChild(shade);
+      return el;
     }
 
-    return $(
-      '<div class="flip-leaf ' + (forward ? "forward" : "backward") + '" aria-hidden="true">' +
-        face("front", front.html, front.number) +
-        face("back", back.html, back.number) +
-        "</div>"
-    );
+    var leaf = document.createElement("div");
+    leaf.className = "flip-leaf " + (forward ? "forward" : "backward");
+    leaf.setAttribute("aria-hidden", "true");
+    leaf.appendChild(face("front", front));
+    leaf.appendChild(face("back", back));
+
+    return $(leaf);
   }
 
   function goTo(target) {
@@ -167,6 +241,7 @@ $(function () {
       return;
     }
 
+
     var forward = target > current;
 
     var front = forward ? faceOf(current, "right") : faceOf(current, "left");
@@ -174,37 +249,49 @@ $(function () {
 
     flipping = true;
     syncControls(target);
-
-    // Put the destination page underneath straight away — the leaf covers it
-    // at rest, so it is only revealed as the sheet lifts off.
-    if (forward) {
-      setPage($right, faceOf(target, "right"));
-    } else {
-      setPage($left, faceOf(target, "left"));
-    }
+    setClosed(target);
 
     var $leaf = buildLeaf(forward, front, back);
     $book.append($leaf);
 
-    // Commit the start transform before switching to the end one, or the
-    // browser collapses both into a single frame and nothing animates.
-    void $leaf[0].offsetWidth;
-    $leaf.addClass("is-turning");
+    // The start transform has to be committed before the end one is applied,
+    // or the browser collapses both into a single frame and nothing animates.
+    // Two frames of waiting does that without forcing a synchronous layout the
+    // way reading offsetWidth does — and the leaf has just been built, so that
+    // reflow was measuring a whole page of freshly inserted content.
+    window.requestAnimationFrame(function () {
+      window.requestAnimationFrame(function () {
+        $leaf.addClass("is-turning");
 
-    window.setTimeout(function () {
-      // The leaf has landed; the half it came to rest on takes over its back
-      // face, then the leaf is discarded.
-      if (forward) {
-        setPage($left, faceOf(target, "left"));
-      } else {
-        setPage($right, faceOf(target, "right"));
-      }
+        // The destination page goes in underneath only now. At rest the leaf
+        // covers this half completely, and it takes several frames to rotate
+        // far enough to reveal anything, so the swap is invisible here — and
+        // doing it after the click keeps a second page-sized layout off the
+        // critical path, where it was costing a dropped frame.
+        if (forward) {
+          setPage($right, faceOf(target, "right"));
+        } else {
+          setPage($left, faceOf(target, "left"));
+        }
 
-      $leaf.remove();
-      current = target;
-      syncControls();
-      flipping = false;
-    }, FLIP_MS);
+        // Timed from here, not from the click, so the swap lands exactly when
+        // the transition ends rather than two frames early.
+        window.setTimeout(function () {
+          // The leaf has landed; the half it came to rest on takes over its
+          // back face, then the leaf is discarded.
+          if (forward) {
+            setPage($left, faceOf(target, "left"));
+          } else {
+            setPage($right, faceOf(target, "right"));
+          }
+
+          $leaf.remove();
+          current = target;
+          syncControls();
+          flipping = false;
+        }, FLIP_MS);
+      });
+    });
   }
 
   function buildDots() {
@@ -248,8 +335,8 @@ $(function () {
     var done = $.Deferred();
 
     $.get(url)
-      .done(function (html) { cache[url] = html; })
-      .fail(function () { cache[url] = errorMarkup(url); })
+      .done(function (html) { cache[url] = template(html); })
+      .fail(function () { cache[url] = template(errorMarkup(url)); })
       .always(function () { done.resolve(); });
 
     return done.promise();

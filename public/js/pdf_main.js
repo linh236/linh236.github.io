@@ -4,7 +4,10 @@ $(function () {
   // Flat reading order — the screen view splits these across left/right halves
   // of a spread; on paper they are simply consecutive sheets. Keep this list
   // in step with PAGES in main.js.
+  var COVER = "pages/cover.html";
+
   var PAGES = [
+    COVER,
     "pages/infor.html",
     "pages/skill_page_1.html",
     "pages/skill_page_2.html",
@@ -21,11 +24,16 @@ $(function () {
   // Build every sheet up front so the DOM order is correct, then fill them in.
   // Waiting for all of them keeps the print dialog from opening on a half-
   // rendered document.
-  var loads = PAGES.map(function (url, i) {
-    var $sheet = $("<article class='sheet'></article>").attr(
-      "data-page",
-      String(i + 1)
-    );
+  // The cover is full-bleed and unnumbered, so numbering starts on the sheet
+  // after it — matching the book view, where the profile is page 1.
+  var numbered = 0;
+
+  var loads = PAGES.map(function (url) {
+    var isCover = url === COVER;
+
+    var $sheet = $("<article class='sheet'></article>")
+      .toggleClass("is-cover", isCover)
+      .attr("data-page", isCover ? "" : String(++numbered));
 
     $doc.append($sheet);
 
